@@ -16,9 +16,9 @@ import sbt._
 object DockerLauncherPlugin extends AutoPlugin{
 
   object SettingsAndTasks {
-    lazy val containers = SettingKey[Seq[String]]("containers", "A list of docker containers to be launched")
-    lazy val launchContainers = TaskKey[Boolean]("launch-containers", "Launches a docker container.")
-    lazy val stopContainers = TaskKey[Boolean]("stop-containers", "Stops a container")
+    lazy val containers = SettingKey[Seq[ContainerInstanceDefinition]]("containers", "A list of docker containers to be launched")
+    lazy val launchContainers = TaskKey[Boolean]("launch-containers", "Launches a docker definition.")
+    lazy val stopContainers = TaskKey[Boolean]("stop-containers", "Stops a definition")
   }
 
   import SettingsAndTasks._
@@ -51,36 +51,34 @@ object DockerLauncherPlugin extends AutoPlugin{
   )
 
 
-  private def launch(container:String,logger:Logger) : Boolean = {
-    logger.info(s"launching docker container $container")
-    val name = "phenix-infra"
-    val repo = "carrefour/phenix"
-
+  private def launch(definition:ContainerInstanceDefinition,logger:Logger) : Boolean = {
+    logger.info(s"launching docker definition $definition")
     OS.current match {
-      case OS.Type.MacOs => {
-
+      case OS.Type.MacOs =>
         val docker = OS.MacOs.get(logger)
-
         val runningContainers = docker.ps()(logger)
-
-
-
-        //Process(s"""docker rm $name""",None,Seq(("DOCKER_HOST",systemEnv)):_*).!
-
-        //Process(s"""docker run -p 9092:9092 -p 2181:2181 -P --name $name -d $repo""",None,Seq(("DOCKER_HOST",systemEnv)):_*).!
-
-      }
+        if(!runningContainers.contains(definition.container)){
+          docker.run(definition)(logger)
+        }else{
+          logger.warn(s"definition ${definition.container} already running")
+        }
     }
-
     true
   }
 
-  private def stop(container:String) : Boolean = {
-    //FIXME streams.value.log.info(s"stopping docker container $container")
-    println(s"stopping docker container $container")
+  private def stop(definition:ContainerInstanceDefinition) : Boolean = {
+    //FIXME streams.value.log.info(s"stopping docker definition $definition")
+    println(s"stopping docker definition $definition")
     true
   }
 
 
 
 }
+
+case class Container(repository:String,name:String)
+case class ContainerInstanceDefinition(container:Container,tunneling:Seq[(Int,Int)]=Seq()){
+  val command =  tunneling.map(p => s"-p ${p._1}:${p._2}").mkString(" ") + s" -P --name ${container.name} -d ${container.repository}"
+}
+case class ContainerInstance(container:Container,id:String, running:Boolean)
+

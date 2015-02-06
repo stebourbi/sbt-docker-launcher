@@ -13,7 +13,9 @@ import Shell._
 
 class Docker(os:OS.Type.OsType,env:Seq[(String,String)] = Seq()){
 
-  def run() = {}
+  def run(definition:ContainerInstanceDefinition)(implicit logger:Logger) = {
+    runCommand2(s"docker run ${definition.command}",env,new DefaultCommandOutputHandler(logger))
+  }
 
 
   def ps()(implicit logger:Logger) : Seq[ContainerInstance] = {
@@ -34,6 +36,4 @@ class PsStdOutHandler extends CommandOutputHandler[Seq[ContainerInstance]]{
   }
 }
 
-case class Container(repository:String,name:String)
-case class ContainerInstance(container:Container,id:String, running:Boolean)
 
