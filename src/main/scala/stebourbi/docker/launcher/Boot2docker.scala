@@ -38,6 +38,7 @@ object Boot2docker {
   }
 
 
+  @Deprecated
   class DockerHostSystemEnv(logger:Logger) extends ExecutionMessagesHandler[Unit] {//TODO refactor can have return
     override def apply(messages: Iterator[String]): Unit = {
       findExportCommand(messages) match {
