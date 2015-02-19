@@ -1,5 +1,5 @@
 
-//dependencyOverrides += "org.scala-sbt" % "sbt" % "0.13.7"
+dependencyOverrides += "org.scala-sbt" % "sbt" % "0.13.7"
 
 // build root test project
 //lazy val root = Project("plugins", file(".")) dependsOn(DockerLauncherPlugin)
@@ -8,4 +8,4 @@
 //lazy val DockerLauncherPlugin = file("..").getAbsoluteFile.toURI
 
 
-addSbtPlugin("stebourbi"%"sbt-docker-launcher"%"1.0")
+//addSbtPlugin("stebourbi"%"sbt-docker-launcher"%"1.0")
