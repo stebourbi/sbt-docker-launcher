@@ -2,7 +2,7 @@ package stebourbi.docker.launcher
 
 import org.scalatest.FlatSpec
 import sbt.ConsoleLogger
-import stebourbi.docker.launcher.Boot2docker.DockerHostSystemEnv
+import stebourbi.docker.launcher.Boot2docker.HostEnvVarCommandOutputHandler
 
 /**
  * User: slim
@@ -11,7 +11,7 @@ import stebourbi.docker.launcher.Boot2docker.DockerHostSystemEnv
  *
  * TODO fill me please!
  */
-class DockerHostSystemEnvSpec extends FlatSpec {
+class HostEnvVarCommandOutputHandlerSpec extends FlatSpec {
 
   val logger = ConsoleLogger.apply(System.out)
 
@@ -27,7 +27,7 @@ class DockerHostSystemEnvSpec extends FlatSpec {
                                ,"\n"
                                ).toIterator
 
-    val command = new DockerHostSystemEnv(logger).findExportCommand(boot2docker_up_out)
+    val command = new HostEnvVarCommandOutputHandler(logger).findExportCommand(boot2docker_up_out)
     assert(command.isDefined)
     assert("tcp://192.168.59.103:2375" === command.get)
 
@@ -42,7 +42,7 @@ class DockerHostSystemEnvSpec extends FlatSpec {
       ,"\n"
     ).toIterator
 
-    val command = new DockerHostSystemEnv(logger).findExportCommand(boot2docker_up_out)
+    val command = new HostEnvVarCommandOutputHandler(logger).findExportCommand(boot2docker_up_out)
     assert(command.isEmpty)
 
   }

@@ -12,13 +12,13 @@ import Shell._
 object Boot2docker {
 
   def up(logger:Logger) = {
-    runCommand[Unit]("""boot2docker up""")(logger)
+    runCommand("""boot2docker up""",new DefaultCommandOutputHandler(logger))(logger)
   }
 
 
 
   def dockerHostEnvVar(logger:Logger) : Option[(String,String)] = {
-    runCommand2[Option[(String,String)]]("""boot2docker shellinit""",Seq(),new HostEnvVarCommandOutputHandler(logger)) (logger)
+    runCommand[Option[(String,String)]]("""boot2docker shellinit""",new HostEnvVarCommandOutputHandler(logger)) (logger)
   }
 
   class  HostEnvVarCommandOutputHandler(logger:Logger) extends CommandOutputHandler[Option[(String,String)]] {
@@ -38,18 +38,6 @@ object Boot2docker {
   }
 
 
-  @Deprecated
-  class DockerHostSystemEnv(logger:Logger) extends ExecutionMessagesHandler[Unit] {//TODO refactor can have return
-    override def apply(messages: Iterator[String]): Unit = {
-      findExportCommand(messages) match {
-        case Some(exportMessage) => {
-          System.setProperty("DOCKER_HOST",exportMessage)
-        }
-        case None => logger.warn("DOCKER_HOST system env not set!")
-      }
-    }
-    def findExportCommand(messages: Iterator[String]):Option[String] = messages.find(_.contains("export DOCKER_HOST")).map(_.stripPrefix("    export DOCKER_HOST="))//TODO refactor!
-  }
 
 
 }

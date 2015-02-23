@@ -49,9 +49,8 @@ object DockerLauncherPlugin extends AutoPlugin{
 
   def launch(definition:ContainerInstanceDefinition,logger:Logger) = {
     logger.info(s"launching docker container $definition")
-    val docker = OS.current match {
-      case OS.Type.MacOs => OS.MacOs.get(logger)
-    }
+    val docker = Docker.of(logger)
+
     val runningContainers = docker.psAll()(logger)
     logger.debug("docker ps: \n" + runningContainers.seq.mkString("\n"))
 

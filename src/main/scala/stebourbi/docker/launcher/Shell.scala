@@ -15,7 +15,7 @@ object Shell {
 
   type CommandOutputHandler[T] = ( CommandOutput => T )
 
-  def runCommand2[T](command:String,env:Seq[(String,String)] = Seq(), handler:(CommandOutput=>T) )(implicit logger:Logger) : T = {
+  def runCommand[T](command:String, handler:(CommandOutput=>T),env:Seq[(String,String)] = Seq())(implicit logger:Logger) : T = {
 
     val collector = new Collector()
     val pio : ProcessIO = new ProcessIO(_ => ()

@@ -15,6 +15,7 @@ import scala.sys.process.ProcessIO
  * TODO fill me please!
  */
 object OS {
+  val NewLine = System.getProperty("line.separator"	)
 
   object Type extends Enumeration{
     type OsType = Value
@@ -27,16 +28,26 @@ object OS {
     case _ => Type.Linux
   }
 
-  val NewLine = System.getProperty("line.separator"	)
 
   object MacOs{
     def get(logger:Logger) : Docker = {
       Boot2docker.up(logger)
       val env = Boot2docker.dockerHostEnvVar(logger)
-      new Docker(OS.Type.MacOs,env.map(Seq(_)).getOrElse(Seq()))
+      new OsxDocker(env.map(Seq(_)).getOrElse(Seq()))
     }
   }
-  
+
+
+  object Linux{
+    def get(logger:Logger) : Docker = {
+      // generate script
+      // print line to add to /etc/sudoers  : slim ALL=(ALL) NOPASSWD:  /bin/bash /home/slim/run-docker-containers.sh
+      if(! DockerDaemon.isRunning()(logger)){
+        sys.error("docker daemon is not running!")
+      }
+      new LinuxDocker
+    }
+  }
 
   
   
