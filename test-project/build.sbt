@@ -1,7 +1,8 @@
 import stebourbi.docker.launcher._
-import stebourbi.docker.launcher.DockerLauncherPlugin.SettingsAndTasks._
+import stebourbi.docker.launcher.DockerLauncherPlugin.autoImport._
 
-lazy val root = (project in file(".")).enablePlugins(DockerLauncherPlugin)
+
+lazy val root = Project("root",file(".")).enablePlugins(DockerLauncherPlugin)
 
 organization := "stebourbi"
 
@@ -9,4 +10,7 @@ name := "test-project"
 
 version := "0.99"
 
-containers := Seq(ContainerInstanceDefinition(Container("centos:6.6","centos")))  //FIXME better DSL
+sbtPlugin := true
+
+containers := Seq(("centos:6.6","centos"))
+

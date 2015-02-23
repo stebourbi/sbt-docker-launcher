@@ -40,8 +40,8 @@ sealed trait Docker{
 class OsxDocker(env:Seq[(String,String)] = Seq()) extends Docker{
 
   def run(definition:ContainerInstanceDefinition)(implicit logger:Logger) = {
-    logger.info(s"docker run ${definition.command}")
-    runCommand(s"docker run ${definition.command}",new DefaultCommandOutputHandler(logger),env)
+    logger.info(s"docker run ${definition.commandArguments}")
+    runCommand(s"docker run ${definition.commandArguments}",new DefaultCommandOutputHandler(logger),env)
   }
 
 
@@ -99,8 +99,8 @@ class PsStdOutHandler extends CommandOutputHandler[Seq[ContainerInstance]]{
 class LinuxDocker extends Docker {
 
   def run(definition:ContainerInstanceDefinition)(implicit logger:Logger) = {
-    logger.info(s"docker run ${definition.command}")
-    runCommand(s"sudo docker run ${definition.command}",new DefaultCommandOutputHandler(logger))
+    logger.info(s"docker run ${definition.commandArguments}")
+    runCommand(s"sudo docker run ${definition.commandArguments}",new DefaultCommandOutputHandler(logger))
   }
 
 

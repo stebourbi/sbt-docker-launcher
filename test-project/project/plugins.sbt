@@ -1,1 +1,5 @@
-addSbtPlugin("stebourbi" % "sbt-docker-launcher" % "0.6")
+
+lazy val root = (project in file(".")).dependsOn(DockerLauncherPlugin)
+
+lazy val DockerLauncherPlugin = uri("../..")
+

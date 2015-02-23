@@ -15,15 +15,13 @@ import stebourbi.docker.launcher.ContainerStatus.ContainerStatus
  */
 object DockerLauncherPlugin extends AutoPlugin{
 
-  object SettingsAndTasks {
+  object autoImport {
     lazy val containers = SettingKey[Seq[ContainerInstanceDefinition]]("containers", "A list of docker containers to be launched")
     lazy val launchContainers = TaskKey[Unit]("launch-containers", "Launches a docker definition.")
     lazy val stopContainers = TaskKey[Unit]("stop-containers", "Stops a definition")
   }
 
-  import SettingsAndTasks._
-
-
+  import autoImport._
 
   /**
    * Provide default settings
@@ -85,7 +83,10 @@ object DockerLauncherPlugin extends AutoPlugin{
 
 case class Container(val repository:String,val name:String)
 case class ContainerInstanceDefinition(val container:Container,val  tunneling:Seq[(Int,Int)]=Seq()){
-  val command =  tunneling.map(p => s"-p ${p._1}:${p._2}").mkString(" ") + s" -P --name ${container.name} -d ${container.repository}"
+  val commandArguments =  tunneling.map(p => s"-p ${p._1}:${p._2}").mkString(" ") + s" -P --name ${container.name} -d ${container.repository}"
+  def ~>(tunneling:(Int,Int)*) : ContainerInstanceDefinition = {
+    this.copy(tunneling = tunneling)
+  }
 }
 case class ContainerInstance(val container:Container,val id:String,val status:ContainerStatus)
 case object ContainerStatus extends Enumeration {
