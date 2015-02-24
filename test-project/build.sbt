@@ -12,5 +12,5 @@ version := "0.99"
 
 sbtPlugin := true
 
-containers := Seq(("centos:6.6","centos"))
+containers := Seq(("redis","myredis"))
 

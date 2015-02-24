@@ -17,8 +17,8 @@ object DockerLauncherPlugin extends AutoPlugin{
 
   object autoImport {
     lazy val containers = SettingKey[Seq[ContainerInstanceDefinition]]("containers", "A list of docker containers to be launched")
-    lazy val launchContainers = TaskKey[Unit]("launch-containers", "Launches a docker definition.")
-    lazy val stopContainers = TaskKey[Unit]("stop-containers", "Stops a definition")
+    lazy val launchContainers = TaskKey[Unit]("launch-containers", "Launches defined docker containers.")
+    lazy val stopContainers = TaskKey[Unit]("stop-containers", "Stops defined docker containers.")
   }
 
   import autoImport._
@@ -39,7 +39,7 @@ object DockerLauncherPlugin extends AutoPlugin{
 
     stopContainers := {
       val logger = sbt.Keys.streams.value.log
-      println(s"stopping docker containers")
+      logger.info(s"stopping docker containers")
       containers.value foreach(stop(_,logger))
     }
   )

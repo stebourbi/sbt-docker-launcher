@@ -71,7 +71,7 @@ class OsxDocker(env:Seq[(String,String)] = Seq()) extends Docker{
 
 class PsStdOutHandler extends CommandOutputHandler[Seq[ContainerInstance]]{
   override def apply(output: CommandOutput): Seq[ContainerInstance] = { //TODO refactor with a more solid regex
-    output.stdOut.toList.tail.map( line =>
+    output.stdOut.toList.tail.map( line =>  //FIXME buggy code
     {
       val tokens = line.split("  ").map(_.trim).filterNot(_.isEmpty)
       if(tokens.length == 7){
