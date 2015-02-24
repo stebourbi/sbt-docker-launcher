@@ -40,8 +40,6 @@ object OS {
 
   object Linux{
     def get(logger:Logger) : Docker = {
-      // generate script
-      // print line to add to /etc/sudoers  : slim ALL=(ALL) NOPASSWD:  /bin/bash /home/slim/run-docker-containers.sh
       if(! DockerDaemon.isRunning()(logger)){
         sys.error("docker daemon is not running!")
       }

@@ -23,16 +23,11 @@ object Boot2docker {
 
   class  HostEnvVarCommandOutputHandler(logger:Logger) extends CommandOutputHandler[Seq[(String, String)]] {
     val EnvironmentVariableRegEx = "^[ ]*export ([A-Z_]*)=(.+)$".r
-
+    private val None = ("","")
     override def apply(output: CommandOutput): Seq[(String, String)] = {
       output.stdOut.map(line => line match {
-        case EnvironmentVariableRegEx(name,value) => {
-          (name,value.trim)
-        }
-        case _ => {
-          println(line.matches(EnvironmentVariableRegEx.pattern.pattern())+ " : " + line)
-          ("","")
-        }
+        case EnvironmentVariableRegEx(name,value) =>  (name,value.trim)
+        case _ =>  None
       }) filterNot(_._1.isEmpty) toSeq
     }
 

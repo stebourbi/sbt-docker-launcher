@@ -17,7 +17,7 @@ object Docker{
     OS.current match {
       case OS.Type.MacOs => MacOs.get(logger)
       case OS.Type.Linux => Linux.get(logger)
-      case _ => sys.error("your OS is not managed!")
+      case _ => sys.error("your OS is not yet managed!")
     }
   }
 }
