@@ -17,24 +17,27 @@ object Boot2docker {
 
 
 
-  def dockerHostEnvVar(logger:Logger) : Option[(String,String)] = {
-    runCommand[Option[(String,String)]]("""boot2docker shellinit""",new HostEnvVarCommandOutputHandler(logger)) (logger)
+  def dockerHostEnvVar(logger:Logger) : Seq[(String, String)] = {
+    runCommand[Seq[(String, String)]]("""boot2docker shellinit""",new HostEnvVarCommandOutputHandler(logger)) (logger)
   }
 
-  class  HostEnvVarCommandOutputHandler(logger:Logger) extends CommandOutputHandler[Option[(String,String)]] {
-    override def apply(output: CommandOutput): Option[(String, String)] = {
-      findExportCommand(output.stdOut) match {
-        case Some(host) => {
-          Some(("DOCKER_HOST",host))
+  class  HostEnvVarCommandOutputHandler(logger:Logger) extends CommandOutputHandler[Seq[(String, String)]] {
+    val EnvironmentVariableRegEx = "^[ ]*export ([A-Z_]*)=(.+)$".r
+
+    override def apply(output: CommandOutput): Seq[(String, String)] = {
+      output.stdOut.map(line => line match {
+        case EnvironmentVariableRegEx(name,value) => {
+          (name,value.trim)
         }
-        case None => {
-          logger.warn("DOCKER_HOST system env not set!")
-           None
+        case _ => {
+          println(line.matches(EnvironmentVariableRegEx.pattern.pattern())+ " : " + line)
+          ("","")
         }
-      }
+      }) filterNot(_._1.isEmpty) toSeq
     }
 
-    def findExportCommand(messages: Iterator[String]):Option[String] = messages.find(_.contains("export DOCKER_HOST")).map(_.stripPrefix("    export DOCKER_HOST="))//TODO refactor!
+
+
   }
 
 

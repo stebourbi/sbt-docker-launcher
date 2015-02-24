@@ -89,8 +89,22 @@ case class ContainerInstanceDefinition(val container:Container,val  tunneling:Se
   }
 }
 case class ContainerInstance(val container:Container,val id:String,val status:ContainerStatus)
+object ContainerInstance {
+  val Unknown = ContainerInstance(Container("???","???"),"???",ContainerStatus.Unknown)
+}
+
+
 case object ContainerStatus extends Enumeration {
   type ContainerStatus = Value
-  val Running,Paused,Stopped = Value
+  val Running,Paused,Stopped,Unknown = Value
+  def from(message:String) : ContainerStatus = {
+    message match {
+      case m:String if m.toLowerCase.contains("paused") => ContainerStatus.Paused
+      case m:String if m.startsWith("Up") => ContainerStatus.Running
+      case m:String if m.startsWith("Exited") => ContainerStatus.Stopped
+      case _ => ContainerStatus.Unknown
+    }
+  }
+
 }
 

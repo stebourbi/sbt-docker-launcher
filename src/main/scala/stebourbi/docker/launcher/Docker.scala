@@ -46,11 +46,11 @@ class OsxDocker(env:Seq[(String,String)] = Seq()) extends Docker{
 
 
   def ps()(implicit logger:Logger) : Seq[ContainerInstance] = {
-    runCommand("docker ps", new PsStdOutHandler,env)
+    runCommand("docker ps --no-trunc", new PsStdOutHandler,env)
   }
 
   def psAll()(implicit logger:Logger) : Seq[ContainerInstance] = {
-    runCommand("docker ps -a", new PsStdOutHandler,env)
+    runCommand("docker ps --no-trunc -a", new PsStdOutHandler,env)
   }
 
   def stop(container:ContainerInstance)(implicit logger:Logger) : Unit = {
@@ -70,28 +70,25 @@ class OsxDocker(env:Seq[(String,String)] = Seq()) extends Docker{
 }
 
 class PsStdOutHandler extends CommandOutputHandler[Seq[ContainerInstance]]{
-  override def apply(output: CommandOutput): Seq[ContainerInstance] = { //TODO refactor with a more solid regex
-    output.stdOut.toList.tail.map( line =>  //FIXME buggy code
-    {
-      val tokens = line.split("  ").map(_.trim).filterNot(_.isEmpty)
-      if(tokens.length == 7){
-        val status = tokens(4) match {
-          case m:String if m.contains("paused") => ContainerStatus.Paused
-          case m:String if m.startsWith("Up") => ContainerStatus.Running
-          case m:String if m.startsWith("Exited") => ContainerStatus.Stopped
-        }
-        ContainerInstance(Container(tokens(1),tokens(6)),tokens(0),status)
-      } else if (tokens.length==6){
-        val status = tokens(4) match {
-          case m:String if m.contains("paused") => ContainerStatus.Paused
-          case m:String if m.startsWith("Up") => ContainerStatus.Running
-          case m:String if m.startsWith("Exited") => ContainerStatus.Stopped
-        }
-        ContainerInstance(Container(tokens(1),tokens(5)),tokens(0),status)
+
+  val DockerPs = "^(\\w+)\\s+((\\w+/){0,1}\\w+(:\\w+){0,1})\\s+(\"[^\"]+\")\\s+.*((Exited|Up).*)[  ][ ]*(.*){0,1}\\s([\\w\\d-/]+)\\s*$".r
+
+  override def apply(output: CommandOutput): Seq[ContainerInstance] = {
+    output.exitCode match {
+      case 0 if !output.stdOut.isEmpty  => {
+        extractContainers(output.stdOut).filterNot(_.equals(ContainerInstance.Unknown))
       }
-      else {
-        ContainerInstance(Container(tokens(1),"???"),tokens(0),ContainerStatus.Stopped)
-      }})
+      case _ => sys.error(s"got error exit code : $output")
+    }
+
+  }
+
+  def extractContainers(output: Iterator[String]) : Seq[ContainerInstance] = {
+    output.toList.map( line =>  line match {
+      case DockerPs(id,image,_,_,command,tail,status,_,name) => ContainerInstance(Container(image,name),id,ContainerStatus.from(tail))
+      case _ => ContainerInstance.Unknown
+    }
+    )
   }
 }
 

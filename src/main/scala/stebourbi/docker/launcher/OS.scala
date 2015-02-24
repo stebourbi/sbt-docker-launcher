@@ -33,7 +33,7 @@ object OS {
     def get(logger:Logger) : Docker = {
       Boot2docker.up(logger)
       val env = Boot2docker.dockerHostEnvVar(logger)
-      new OsxDocker(env.map(Seq(_)).getOrElse(Seq()))
+      new OsxDocker(env)
     }
   }
 
