@@ -1,6 +1,15 @@
 # use Docker-based container (instead of OpenVZ)
 sudo: false
 
+os:
+  - linux
+
+before_install:
+  - sudo apt-get update -qq
+
+install:
+  - sudo apt-get install -y docker.io
+
 cache:
   directories:
     - $HOME/.m2/repository
@@ -14,6 +23,7 @@ script:
 
   # Trick to avoid unnecessary cache updates
   - find $HOME/.sbt -name "*.lock" | xargs rm
+  - cd test-project && sbt  ++$TRAVIS_SCALA_VERSION  launch-containers && sbt ++$TRAVIS_SCALA_VERSION  stop-containers && cd -
 
 scala:
   - 2.10.4
@@ -25,3 +35,5 @@ jdk:
 notifications:
   email:
     - slim@tebourbi.com
+    - stephane.jeandeaux@gmail.com
+    - david_ravet@carrefour.com
