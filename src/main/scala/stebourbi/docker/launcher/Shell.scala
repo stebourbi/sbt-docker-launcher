@@ -34,7 +34,7 @@ object Shell {
   class DefaultCommandOutputHandler(logger:Logger) extends CommandOutputHandler[Unit] {
     override def apply(output: CommandOutput): Unit = {
       //logger.error(output.stdErr.filterNot(_.stripMargin.trim.isEmpty).mkString(OS.NewLine))
-      logger.info(output.stdOut.filterNot(_.stripMargin.trim.isEmpty).mkString(OS.NewLine))
+      logger.debug(output.stdOut.filterNot(_.stripMargin.trim.isEmpty).mkString(OS.NewLine))
       output.exitCode match {
         case 0 => ()
         case _ => {
