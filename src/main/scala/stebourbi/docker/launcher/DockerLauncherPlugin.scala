@@ -82,13 +82,31 @@ object DockerLauncherPlugin extends AutoPlugin{
 }
 
 case class Container(val repository:String,val name:String)
-case class ContainerInstanceDefinition(val container:Container,val  tunneling:Seq[(Int,Int)]=Seq()){
-  val commandArguments =  tunneling.map(p => s"-p ${p._1}:${p._2}").mkString(" ") + s" -P --name ${container.name} -d ${container.repository}"
-  def ~>(tunneling:(Int,Int)*) : ContainerInstanceDefinition = {
-    this.copy(tunneling = tunneling)
+
+case class ContainerInstanceDefinition(val container:Container
+                                       ,val  tunneling:Seq[(Int,Int)]=Seq()
+                                       ,val  environmentVariables:Seq[(String,String)]=Seq()
+                                       ,val  links:Seq[(String,String)]=Seq()
+                                        ){
+
+  def this(repository:String,name:String) = this(new Container(repository,name))
+
+  val commandArguments =  {
+    val tunnels = tunneling.map(p => s"-p ${p._1}:${p._2}").mkString(" ")
+    val envVars = environmentVariables.map(p => s"-e '${p._1}=${p._2}'").mkString(" ")
+    val linked = links.map(p => s"--link '${p._1}:${p._2}'").mkString(" ")
+    s" $tunnels $envVars $linked -P -d  --name ${container.name} ${container.repository}"
   }
+
+  def p(tunnel:(Int,Int)) : ContainerInstanceDefinition = this.copy(tunneling = tunnel +: tunneling)
+
+  def e(environmentVariable:(String,String)) : ContainerInstanceDefinition = this.copy(environmentVariables = environmentVariable +: environmentVariables)
+
+  def link(link : (String,String)) : ContainerInstanceDefinition = this.copy(links = link +: links)
 }
+
 case class ContainerInstance(val container:Container,val id:String,val status:ContainerStatus)
+
 object ContainerInstance {
   val Unknown = ContainerInstance(Container("???","???"),"???",ContainerStatus.Unknown)
 }

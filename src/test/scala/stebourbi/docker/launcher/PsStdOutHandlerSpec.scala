@@ -14,7 +14,7 @@ import Shell._
 class PsStdOutHandlerSpec extends FlatSpec with Matchers {
 
   implicit val logger = ConsoleLogger.apply(System.out)
-  val handler = new PsStdOutHandler
+  val handler = new DockerPsStdOutHandler
 
 
 
