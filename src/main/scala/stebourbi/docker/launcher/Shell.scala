@@ -13,6 +13,8 @@ import scala.sys.process.{Process, ProcessIO}
  */
 object Shell {
 
+  val NewLine = sys.props("line.separator")
+
   type CommandOutputHandler[T] = ( CommandOutput => T )
 
   def runCommand[T](command:String, handler:(CommandOutput=>T),env:Seq[(String,String)] = Seq())(implicit logger:Logger) : T = {
@@ -34,14 +36,19 @@ object Shell {
   class DefaultCommandOutputHandler(logger:Logger) extends CommandOutputHandler[Unit] {
     override def apply(output: CommandOutput): Unit = {
       //logger.error(output.stdErr.filterNot(_.stripMargin.trim.isEmpty).mkString(OS.NewLine))
-      logger.info(output.stdOut.filterNot(_.stripMargin.trim.isEmpty).mkString(OS.NewLine))
+      logger.debug(output.stdOut.filterNot(_.stripMargin.trim.isEmpty).mkString(NewLine))
       output.exitCode match {
         case 0 => ()
         case _ => {
-          logger.error(output.stdErr.filterNot(_.stripMargin.trim.isEmpty).mkString(OS.NewLine))
+          logger.error(output.stdErr.filterNot(_.stripMargin.trim.isEmpty).mkString(NewLine))
           sys.error(s"Command Exits with failure code ${output.exitCode}")
         }
       }
+    }
+  }
+  class BlindToTheTerrorCommandOutputHandler(logger:Logger) extends CommandOutputHandler[Unit] {
+    override def apply(output: CommandOutput): Unit = {
+      //logger.error(output.stdErr.filterNot(_.stripMargin.trim.isEmpty).mkString(OS.NewLine))
     }
   }
 
