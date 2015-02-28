@@ -42,14 +42,14 @@ class ContainerInstanceDefinitionSpec extends FlatSpec {
   it must "translate defined environment vars" in {
     val cmd = new ContainerInstanceDefinition("repository","name") e ("VAR1","VAL1")
 
-    assert("  -e 'VAR1=VAL1'  -P -d  --name name repository" === cmd.commandArguments)
+    assert("  -e VAR1='VAL1'  -P -d  --name name repository" === cmd.commandArguments)
 
   }
 
   it must "translate defined linked containers" in {
     val cmd = new ContainerInstanceDefinition("repository","name") link ("linked","alias")
 
-    assert("   --link 'linked:alias' -P -d  --name name repository" === cmd.commandArguments)
+    assert("   --link linked:alias -P -d  --name name repository" === cmd.commandArguments)
 
   }
 
