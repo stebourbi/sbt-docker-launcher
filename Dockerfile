@@ -9,12 +9,12 @@ RUN wget -O /tmp/sbt.deb http://dl.bintray.com/sbt/debian/sbt-${SBT_VERSION}.deb
 RUN dpkg -i /tmp/sbt.deb
 RUN rm -f /tmp/sbt.deb
 
-#Update package
-RUN apt-get update
 
-#Install Docker
-RUN apt-get -y install docker.io
 
 ADD . /home/sbt-docker-launcher
 
-CMD ["bash"]
+#Install Docker
+RUN curl -s https://get.docker.io/ubuntu/ | sh
+
+
+CMD /etc/init.d/docker start && /bin/bash
