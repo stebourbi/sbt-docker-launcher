@@ -16,5 +16,14 @@ ADD . /home/sbt-docker-launcher
 #Install Docker
 RUN curl -s https://get.docker.io/ubuntu/ | sh
 
+#add users
+
+RUN useradd userindockergroup -p $(perl -e'print crypt("123456", "docker")')
+RUN gpasswd -a userindockergroup docker
+
+RUN useradd userinsudogroup -p $(perl -e'print crypt("123456", "docker")')
+RUN gpasswd -a userinsudogroup sudo
+
+
 
 CMD /etc/init.d/docker start && /bin/bash
