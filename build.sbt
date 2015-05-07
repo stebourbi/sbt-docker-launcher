@@ -2,7 +2,7 @@ name := "sbt-docker-launcher"
 
 organization := "stebourbi"
 
-version := "0.6"
+version := "0.7-SNAPSHOT"
 
 scalaVersion in Global := "2.10.2"
 
