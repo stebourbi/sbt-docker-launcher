@@ -14,4 +14,4 @@ sbtPlugin := true
 
 containers += ( ("redis","redis1") p (6379,6379)  e ("VAR1","VAL1") )
 
-containers += ( ("redis","redis2") link ("redis1","master") e ("VAR2","VAL2") )
+containers += ( ("redis","redis2") link ("redis1","master") e ("VAR2","VA!L2") )

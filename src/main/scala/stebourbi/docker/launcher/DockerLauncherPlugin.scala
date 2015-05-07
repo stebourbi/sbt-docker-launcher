@@ -93,7 +93,7 @@ case class ContainerInstanceDefinition(val container:Container
 
   val commandArguments =  {
     val tunnels = tunneling.map(p => s"-p ${p._1}:${p._2}").mkString(" ")
-    val envVars = environmentVariables.map(p => s"-e ${p._1}='${p._2}'").mkString(" ")
+    val envVars = environmentVariables.map(p => s"-e ${p._1}=${p._2}").mkString(" ")
     val linked = links.map(p => s"--link ${p._1}:${p._2}").mkString(" ")
     s" $tunnels $envVars $linked -P -d  --name ${container.name} ${container.repository}"
   }
