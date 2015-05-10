@@ -68,9 +68,7 @@ object DockerLauncherPlugin extends AutoPlugin{
 
   def stop(definition:ContainerInstanceDefinition,logger:Logger) = {
     logger.info(s"stopping docker container $definition")
-    val docker = OS.current match {
-      case OS.Type.MacOs => OS.MacOs.get(logger)
-    }
+    val docker = Docker.of(logger)
     val runningContainers = docker.ps()(logger)
 
     runningContainers.find {

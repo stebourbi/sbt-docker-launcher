@@ -1,8 +1,10 @@
 package stebourbi.docker.launcher
 
-import sbt.Logger
+import java.io.File
+
+import sbt._
 import Shell._
-import stebourbi.docker.launcher.OS.{Linux, MacOs}
+
 
 /**
  * User: slim
@@ -14,12 +16,46 @@ import stebourbi.docker.launcher.OS.{Linux, MacOs}
 
 object Docker{
   def of(logger:Logger)  : Docker = {
-    OS.current match {
-      case OS.Type.MacOs => MacOs.get(logger)
-      case OS.Type.Linux => Linux.get(logger)
+    dockerInfo match {
+      case DockerInfoBoot2Docker(_) => {
+        Boot2docker.up(logger)
+        val env = Boot2docker.dockerHostEnvVar(logger)
+        new OsxDocker(env)
+      }
+      case DockerInfoLinux(_) => {
+        if(! DockerDaemon.isRunning()(logger)){
+          sys.error("docker daemon is not running!")
+        }
+        new LinuxDocker
+      }
       case _ => sys.error("your OS is not yet managed!")
     }
   }
+
+  //TODO find better place and way
+  abstract class DockerInfo(val host : String, val dockerHost: String)
+
+  case class DockerInfoLinux(override val dockerHost : String) extends DockerInfo("127.0.0.1", dockerHost)
+  case class DockerInfoBoot2Docker(val boot2dockerip : String) extends DockerInfo(boot2dockerip, boot2dockerip)
+
+
+  def createDockerInfo(): DockerInfo = {
+    import scala.sys.process._
+    val hasBoot2docker = "which boot2docker"  #> file("/dev/null") ! new FileProcessLogger(new File("/dev/null"))
+
+    //with boot2docker
+    if(hasBoot2docker == 0){
+      val boot2DockerIp = Process("boot2docker ip").lines.head
+      val dockerInfoValue = DockerInfoBoot2Docker(boot2DockerIp)
+      dockerInfoValue
+    } else {
+      val info = "ifconfig" #| "grep -A 1 docker0" #| "tail -1" #|
+        Seq("sed", "-e", "s/[ ]*inet \\(a[d]\\{1,2\\}r:\\)\\{0,1\\}\\([0-9.]*\\) .*/\\2/")
+        DockerInfoLinux(info.lines.head)
+    }
+  }
+
+  lazy val dockerInfo = createDockerInfo()
 }
 
 sealed trait Docker{
@@ -79,7 +115,9 @@ sealed trait DockerBin{
   def envVars : Seq[(String,String)]  = Seq()
 }
 
-sealed trait LinuxDockerBin extends DockerBin
+class LinuxDockerBin extends DockerBin{
+  override def dockerExec = "docker"
+}
 
 class OsxDockerBin(override val envVars:Seq[(String,String)] ) extends DockerBin{
   override def dockerExec = "docker"
