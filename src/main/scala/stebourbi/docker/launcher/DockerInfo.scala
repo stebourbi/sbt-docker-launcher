@@ -8,19 +8,26 @@ import sbt._
  * Information on docker Ip host,...
  */
 object DockerInfo {
-  //TODO find better place and way
-  abstract class DockerInfo(val host : String, val dockerHost: String)
 
-  case class DockerInfoLinux(override val dockerHost : String) extends DockerInfo("127.0.0.1", dockerHost)
-  case class DockerInfoBoot2Docker(val boot2dockerip : String) extends DockerInfo(boot2dockerip, boot2dockerip)
+  //TODO find better place and way
+  abstract class DockerInfo(val host: String, val dockerHost: String)
+
+  case class DockerInfoLinux(override val dockerHost: String) extends DockerInfo("127.0.0.1", dockerHost)
+
+  case class DockerInfoBoot2Docker(val boot2dockerip: String) extends DockerInfo(boot2dockerip, boot2dockerip)
 
 
   def createDockerInfo(): DockerInfo = {
     import scala.sys.process._
-    val hasBoot2docker = "which boot2docker"  #> file("/dev/null") ! new FileProcessLogger(new File("/dev/null"))
+    val hasBoot2docker = {
+      System.getProperty("os.name") match {
+        case u: String if u.startsWith("Windows") => 0
+        case _ =>  "which boot2docker" #> file("/dev/null") ! new FileProcessLogger(new File("/dev/null"))
+      }
+    }
 
     //with boot2docker
-    if(hasBoot2docker == 0){
+    if (hasBoot2docker == 0) {
       val boot2DockerIp = Process("boot2docker ip").lines.head
       val dockerInfoValue = DockerInfoBoot2Docker(boot2DockerIp)
       dockerInfoValue
@@ -33,5 +40,9 @@ object DockerInfo {
 
   lazy val dockerInfo = createDockerInfo()
 }
+
+
+
+
 
 
