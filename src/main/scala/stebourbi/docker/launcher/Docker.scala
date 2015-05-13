@@ -40,7 +40,7 @@ sealed trait Docker{
 
   def rm(containers: Seq[ContainerInstance]) (implicit logger:Logger) : Unit
 
-  def ps()(implicit logger:Logger) : Seq[ContainerInstance]
+  def ps(options : String = "--no-trunc")(implicit logger:Logger) : Seq[ContainerInstance]
 
   def psAll()(implicit logger:Logger) : Seq[ContainerInstance]
 
@@ -62,8 +62,8 @@ abstract class BaseDocker(dockerBin:DockerBin) extends Docker{
 
   }
 
-  def ps()(implicit logger:Logger) : Seq[ContainerInstance] = {
-    runCommand(s"${dockerBin.dockerExec} ps --no-trunc", new DockerPsStdOutHandler,dockerBin.envVars)
+  def ps(options : String)(implicit logger:Logger) : Seq[ContainerInstance] = {
+    runCommand(s"${dockerBin.dockerExec} ps $options", new DockerPsStdOutHandler,dockerBin.envVars)
   }
 
   def psAll()(implicit logger:Logger) : Seq[ContainerInstance] = {
@@ -85,9 +85,9 @@ abstract class BaseDocker(dockerBin:DockerBin) extends Docker{
   }
 
   def rm(containers: Seq[ContainerInstance]) (implicit logger:Logger)  : Unit = {
-    logger.info(s"docker start ${containers}")
+    logger.info(s"docker rm ${containers}")
 
-    runCommand(s"${dockerBin.dockerExec} rm -f ${containers.map(_.id)}", new DefaultCommandOutputHandler(logger),dockerBin.envVars)
+    runCommand(s"${dockerBin.dockerExec} rm -f ${containers.map(_.id).mkString(" ")}", new BlindToTheTerrorCommandOutputHandler(logger),dockerBin.envVars)
   }
 
 
@@ -120,7 +120,7 @@ class SudoerLinuxDockerBin extends LinuxDockerBin{
 
 class DockerPsStdOutHandler extends CommandOutputHandler[Seq[ContainerInstance]]{
 
-  val DockerPs = "^(\\w+)\\s+((\\w+/){0,1}\\w+(:\\w+){0,1})\\s+(\"[^\"]+\")\\s+.*((Exited|Up).*)[  ][ ]*(.*){0,1}\\s([\\w\\d-/]+)\\s*$".r
+  val DockerPs = "^(\\w+)\\s+((\\w+/){0,1}\\w+(:\\w+){0,1})\\s+(\"[^\"]+\")\\s+.*((Exited|Up).*)[  ][ ]*(.*){0,1}\\s([\\w\\d-/]+)\\s.*$".r
 
   override def apply(output: CommandOutput): Seq[ContainerInstance] = {
     output.exitCode match {
@@ -133,10 +133,13 @@ class DockerPsStdOutHandler extends CommandOutputHandler[Seq[ContainerInstance]]
   }
 
   def extractContainers(output: Iterator[String]) : Seq[ContainerInstance] = {
-    output.toList.map( line =>  line match {
-      case DockerPs(id,image,_,_,command,tail,status,_,name) => ContainerInstance(Container(image,name),id,ContainerStatus.from(tail))
-      case _ => ContainerInstance.Unknown
+    output.toList.map( line =>  {
+      line match {
+        case DockerPs(id,image,_,_,command,tail,status,_,name) => ContainerInstance(Container(image,name),id,ContainerStatus.from(tail))
+        case _ => ContainerInstance.Unknown
+      }
     }
     )
   }
 }
+

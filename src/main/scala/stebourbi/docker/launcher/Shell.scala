@@ -46,6 +46,11 @@ object Shell {
       }
     }
   }
+  class BlindToTheTerrorCommandOutputHandler(logger:Logger) extends CommandOutputHandler[Unit] {
+    override def apply(output: CommandOutput): Unit = {
+      //logger.error(output.stdErr.filterNot(_.stripMargin.trim.isEmpty).mkString(OS.NewLine))
+    }
+  }
 
 
 

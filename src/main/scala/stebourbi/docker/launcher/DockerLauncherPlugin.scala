@@ -87,10 +87,11 @@ object DockerLauncherPlugin extends AutoPlugin {
   def rm(definitions: Seq[ContainerInstanceDefinition], logger: Logger) = {
     logger.info(s"rm docker container $definitions")
     val docker = Docker.of(logger)
-    val runningContainers = docker.ps()(logger)
+    //TODO use ps when regex good
+    val runningContainers = definitions.map(f => ContainerInstance(Container(f.container.name,f.container.name),f.container.name,ContainerStatus.from(f.container.name)))
 
+    docker.rm(runningContainers)(logger)
 
-    docker.rm(runningContainers.filter(running => definitions.map(_.container.name).contains(running.container.name)))(logger)
 
 
   }
