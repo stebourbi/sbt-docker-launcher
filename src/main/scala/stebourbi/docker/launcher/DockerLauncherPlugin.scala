@@ -42,6 +42,12 @@ object DockerLauncherPlugin extends AutoPlugin {
       val logger = sbt.Keys.streams.value.log
       logger.info(s"stopping docker containers")
       containers.value foreach (stop(_, logger))
+    },
+
+    rmContainers := {
+      val logger = sbt.Keys.streams.value.log
+      logger.info(s"stopping docker containers")
+      rm(containers.value, logger)
     }
   )
 
