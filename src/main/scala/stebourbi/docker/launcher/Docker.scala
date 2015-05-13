@@ -38,6 +38,8 @@ object Docker{
 
 sealed trait Docker{
 
+  def rm(containers: Seq[ContainerInstance]) (implicit logger:Logger) : Unit
+
   def ps()(implicit logger:Logger) : Seq[ContainerInstance]
 
   def psAll()(implicit logger:Logger) : Seq[ContainerInstance]
@@ -81,6 +83,15 @@ abstract class BaseDocker(dockerBin:DockerBin) extends Docker{
     logger.info(s"docker start ${container}")
     runCommand(s"${dockerBin.dockerExec} start ${container.id}", new DefaultCommandOutputHandler(logger),dockerBin.envVars)
   }
+
+  def rm(containers: Seq[ContainerInstance]) (implicit logger:Logger)  : Unit = {
+    logger.info(s"docker start ${containers}")
+
+    runCommand(s"${dockerBin.dockerExec} rm -f ${containers.map(_.id)}", new DefaultCommandOutputHandler(logger),dockerBin.envVars)
+  }
+
+
+
 }
 
 class OsxDocker(env:Seq[(String,String)] = Seq()) extends BaseDocker(new OsxDockerBin(env))
