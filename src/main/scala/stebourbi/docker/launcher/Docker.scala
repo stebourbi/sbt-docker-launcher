@@ -85,7 +85,7 @@ abstract class BaseDocker(dockerBin:DockerBin) extends Docker{
 
 class OsxDocker(env:Seq[(String,String)] = Seq()) extends BaseDocker(new OsxDockerBin(env))
 
-class LinuxDocker extends BaseDocker(new SudoerLinuxDockerBin)
+class LinuxDocker extends BaseDocker(new LinuxDockerBin)
 
 
 sealed trait DockerBin{
