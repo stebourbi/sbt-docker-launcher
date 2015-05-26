@@ -22,6 +22,9 @@ object DockerInfo {
     import scala.sys.process._
 
     System.getProperty("os.name") match {
+      case u : String if u.startsWith("Windows") => val boot2DockerIp = Process("boot2docker ip").lines.head
+          val dockerInfoValue = DockerInfoBoot2Docker(boot2DockerIp)
+          dockerInfoValue
       case _ => {
         val hasBoot2docker = "which boot2docker" #> file("/dev/null") ! new FileProcessLogger(new File("/dev/null"))
         //with boot2docker
