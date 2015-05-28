@@ -1,10 +1,8 @@
 package stebourbi.docker.launcher
 
-import java.io.File
-
 import sbt._
-import Shell._
-import stebourbi.docker.launcher.DockerInfo.{DockerInfoLinux, DockerInfoBoot2Docker}
+import stebourbi.docker.launcher.DockerInfo.{DockerInfoBoot2Docker, DockerInfoLinux}
+import stebourbi.docker.launcher.Shell._
 
 
 /**
@@ -120,7 +118,7 @@ class SudoerLinuxDockerBin extends LinuxDockerBin{
 
 class DockerPsStdOutHandler extends CommandOutputHandler[Seq[ContainerInstance]]{
 
-  val DockerPs = "^(\\w+)\\s+((\\w+/){0,1}\\w+(:\\w+){0,1})\\s+(\"[^\"]+\")\\s+.*((Exited|Up).*)[  ][ ]*(.*){0,1}\\s([\\w\\d-/]+)\\s.*$".r
+  val DockerPs = "^(\\w+)\\s+(.*?\\s)\\s+(\"[^\"]+\")\\s+.*(Exit.*?\\s|Up.*?\\s)\\s+(.*?\\s)\\s+(.*)".r
 
   override def apply(output: CommandOutput): Seq[ContainerInstance] = {
     output.exitCode match {
@@ -132,10 +130,17 @@ class DockerPsStdOutHandler extends CommandOutputHandler[Seq[ContainerInstance]]
 
   }
 
+  /**
+   * With --no-trunc we have in NAMES the linked dockers so we find the name.
+   */
+  def findName(name: String): String = {
+    name.split(",").filterNot(_.contains("/")).head
+  }
+
   def extractContainers(output: Iterator[String]) : Seq[ContainerInstance] = {
     output.toList.map( line =>  {
       line match {
-        case DockerPs(id,image,_,_,command,tail,status,_,name) => ContainerInstance(Container(image,name),id,ContainerStatus.from(tail))
+        case DockerPs(id,image,command,tail,status,name) => ContainerInstance(Container(image.trim,findName(name)),id.trim,ContainerStatus.from(tail.trim))
         case _ => ContainerInstance.Unknown
       }
     }
