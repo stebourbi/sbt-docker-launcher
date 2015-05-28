@@ -118,7 +118,7 @@ class SudoerLinuxDockerBin extends LinuxDockerBin{
 
 class DockerPsStdOutHandler extends CommandOutputHandler[Seq[ContainerInstance]]{
 
-  val DockerPs = "^(\\w+)\\s+(.*?\\s)\\s+(\"[^\"]+\")\\s+.*(Exit.*?\\s|Up.*?\\s)\\s+(.*?\\s)\\s+(.*)".r
+  val DockerPs = "^(\\w+)\\s+(.*?\\s)\\s+(\"[^\"]+\")\\s+.*(Exit.*?\\s|Up.*?\\s)\\s+(.*?\\s)\\s+([a-zA-Z0-9][a-zA-Z0-9\\/_.,-]+.*$)".r
 
   override def apply(output: CommandOutput): Seq[ContainerInstance] = {
     output.exitCode match {
@@ -134,7 +134,7 @@ class DockerPsStdOutHandler extends CommandOutputHandler[Seq[ContainerInstance]]
    * With --no-trunc we have in NAMES the linked dockers so we find the name.
    */
   def findName(name: String): String = {
-    name.split(",").filterNot(_.contains("/")).head
+    name.split(",").filterNot(_.contains("/")).head.trim
   }
 
   def extractContainers(output: Iterator[String]) : Seq[ContainerInstance] = {
