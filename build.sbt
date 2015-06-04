@@ -12,7 +12,7 @@ sbtPlugin := true
 
 publishMavenStyle := true
 
-val deploymentRepository = sys.props.get("publish.repository")
+val deploymentRepository = sys.props.get("publish.repository").get
 
 credentials += Credentials(Path.userHome / ".sbt" / ".credentials")
 
