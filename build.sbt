@@ -12,15 +12,15 @@ sbtPlugin := true
 
 publishMavenStyle := true
 
-val deploymentRepository = sys.props.get("publish.repository").get
+val deploymentRepository = sys.props.get("publish.repository")
 
 credentials += Credentials(Path.userHome / ".sbt" / ".credentials")
 
 publishTo := {
-        if (sbt.Keys.isSnapshot.value)
-          Some("snapshots" at deploymentRepository + "nexus/content/repositories/snapshots")
-        else
-          Some("releases" at deploymentRepository + "nexus/content/repositories/releases")
-      }
- 
- 
+  deploymentRepository.map(repo => {
+    sbt.Keys.isSnapshot.value match {
+      case true => Some("snapshots" at repo + "nexus/content/repositories/snapshots")
+      case _ => Some("releases" at repo + "nexus/content/repositories/releases")
+    }
+  }).getOrElse(None)
+}
