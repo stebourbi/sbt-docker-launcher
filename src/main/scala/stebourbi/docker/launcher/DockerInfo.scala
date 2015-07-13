@@ -35,7 +35,7 @@ object DockerInfo {
         } else {
           val info = "ifconfig" #| "grep -A 1 docker0" #| "tail -1" #|
             Seq("sed", "-e", "s/[ ]*inet \\(a[d]\\{1,2\\}r:\\)\\{0,1\\}\\([0-9.]*\\) .*/\\2/")
-          DockerInfoLinux(info.lines.head)
+          DockerInfoLinux(info.lines.headOption.getOrElse("127.0.0.1"))
         }
       }
 
