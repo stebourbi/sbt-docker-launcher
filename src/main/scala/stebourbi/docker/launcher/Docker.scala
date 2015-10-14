@@ -1,8 +1,9 @@
 package stebourbi.docker.launcher
 
-import sbt.Logger
-import Shell._
-import stebourbi.docker.launcher.OS.{Linux, MacOs}
+import sbt._
+import stebourbi.docker.launcher.DockerInfo.{DockerInfoBoot2Docker, DockerInfoLinux}
+import stebourbi.docker.launcher.Shell._
+
 
 /**
  * User: slim
@@ -14,17 +15,30 @@ import stebourbi.docker.launcher.OS.{Linux, MacOs}
 
 object Docker{
   def of(logger:Logger)  : Docker = {
-    OS.current match {
-      case OS.Type.MacOs => MacOs.get(logger)
-      case OS.Type.Linux => Linux.get(logger)
+    DockerInfo.dockerInfo match {
+      case DockerInfoBoot2Docker(_) => {
+        Boot2docker.up(logger)
+        val env = Boot2docker.dockerHostEnvVar(logger)
+        new OsxDocker(env)
+      }
+      case DockerInfoLinux(_) => {
+        if(! DockerDaemon.isRunning()(logger)){
+          sys.error("docker daemon is not running!")
+        }
+        new LinuxDocker
+      }
       case _ => sys.error("your OS is not yet managed!")
     }
   }
+
+
 }
 
 sealed trait Docker{
 
-  def ps()(implicit logger:Logger) : Seq[ContainerInstance]
+  def rm(containers: Seq[ContainerInstance]) (implicit logger:Logger) : Unit
+
+  def ps(options : String = "--no-trunc")(implicit logger:Logger) : Seq[ContainerInstance]
 
   def psAll()(implicit logger:Logger) : Seq[ContainerInstance]
 
@@ -46,8 +60,8 @@ abstract class BaseDocker(dockerBin:DockerBin) extends Docker{
 
   }
 
-  def ps()(implicit logger:Logger) : Seq[ContainerInstance] = {
-    runCommand(s"${dockerBin.dockerExec} ps --no-trunc", new DockerPsStdOutHandler,dockerBin.envVars)
+  def ps(options : String)(implicit logger:Logger) : Seq[ContainerInstance] = {
+    runCommand(s"${dockerBin.dockerExec} ps $options", new DockerPsStdOutHandler,dockerBin.envVars)
   }
 
   def psAll()(implicit logger:Logger) : Seq[ContainerInstance] = {
@@ -67,11 +81,20 @@ abstract class BaseDocker(dockerBin:DockerBin) extends Docker{
     logger.info(s"docker start ${container}")
     runCommand(s"${dockerBin.dockerExec} start ${container.id}", new DefaultCommandOutputHandler(logger),dockerBin.envVars)
   }
+
+  def rm(containers: Seq[ContainerInstance]) (implicit logger:Logger)  : Unit = {
+    logger.info(s"docker rm ${containers}")
+
+    runCommand(s"${dockerBin.dockerExec} rm -f ${containers.map(_.id).mkString(" ")}", new BlindToTheTerrorCommandOutputHandler(logger),dockerBin.envVars)
+  }
+
+
+
 }
 
 class OsxDocker(env:Seq[(String,String)] = Seq()) extends BaseDocker(new OsxDockerBin(env))
 
-class LinuxDocker extends BaseDocker(new SudoerLinuxDockerBin)
+class LinuxDocker extends BaseDocker(new LinuxDockerBin)
 
 
 sealed trait DockerBin{
@@ -79,7 +102,9 @@ sealed trait DockerBin{
   def envVars : Seq[(String,String)]  = Seq()
 }
 
-sealed trait LinuxDockerBin extends DockerBin
+class LinuxDockerBin extends DockerBin{
+  override def dockerExec = "docker"
+}
 
 class OsxDockerBin(override val envVars:Seq[(String,String)] ) extends DockerBin{
   override def dockerExec = "docker"
@@ -93,7 +118,7 @@ class SudoerLinuxDockerBin extends LinuxDockerBin{
 
 class DockerPsStdOutHandler extends CommandOutputHandler[Seq[ContainerInstance]]{
 
-  val DockerPs = "^(\\w+)\\s+((\\w+/){0,1}\\w+(:\\w+){0,1})\\s+(\"[^\"]+\")\\s+.*((Exited|Up).*)[  ][ ]*(.*){0,1}\\s([\\w\\d-/]+)\\s*$".r
+  val DockerPs = "^(\\w+)\\s+(.*?\\s)\\s+(\"[^\"]+\")\\s+.*(Exit.*?\\s|Up.*?\\s)\\s+(.*?\\s)\\s+([a-zA-Z0-9][a-zA-Z0-9\\/_.,-]+.*$)".r
 
   override def apply(output: CommandOutput): Seq[ContainerInstance] = {
     output.exitCode match {
@@ -105,11 +130,21 @@ class DockerPsStdOutHandler extends CommandOutputHandler[Seq[ContainerInstance]]
 
   }
 
+  /**
+   * With --no-trunc we have in NAMES the linked dockers so we find the name.
+   */
+  def findName(name: String): String = {
+    name.split(",").filterNot(_.contains("/")).head.trim
+  }
+
   def extractContainers(output: Iterator[String]) : Seq[ContainerInstance] = {
-    output.toList.map( line =>  line match {
-      case DockerPs(id,image,_,_,command,tail,status,_,name) => ContainerInstance(Container(image,name),id,ContainerStatus.from(tail))
-      case _ => ContainerInstance.Unknown
+    output.toList.map( line =>  {
+      line match {
+        case DockerPs(id,image,command,tail,status,name) => ContainerInstance(Container(image.trim,findName(name)),id.trim,ContainerStatus.from(tail.trim))
+        case _ => ContainerInstance.Unknown
+      }
     }
     )
   }
 }
+
