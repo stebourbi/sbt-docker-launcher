@@ -12,6 +12,7 @@ sbtPlugin := true
 
 publishMavenStyle := true
 
+//http://local.repository:8081 or with prefix nexus http://repository/nexus
 val deploymentRepository = sys.props.get("publish.repository")
 
 credentials += Credentials(Path.userHome / ".sbt" / ".credentials")
@@ -19,8 +20,8 @@ credentials += Credentials(Path.userHome / ".sbt" / ".credentials")
 publishTo := {
   deploymentRepository.map(repo => {
     sbt.Keys.isSnapshot.value match {
-      case true => Some("snapshots" at repo + "nexus/content/repositories/snapshots")
-      case _ => Some("releases" at repo + "nexus/content/repositories/releases")
+      case true => Some("snapshots" at repo + "/content/repositories/snapshots")
+      case _ => Some("releases" at repo + "/content/repositories/releases")
     }
   }).getOrElse(None)
 }
