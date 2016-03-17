@@ -37,7 +37,7 @@ object DockerLauncherPlugin extends AutoPlugin {
     launchContainers := {
       val logger = sbt.Keys.streams.value.log
       val docker = DefaultDockerClient.fromEnv().build()
-      logger.info(s"stopping docker containers")
+      logger.info(s"launch docker containers")
       try {
         containers.value.foreach(launch(docker, _, logger))
       } finally {
@@ -48,7 +48,7 @@ object DockerLauncherPlugin extends AutoPlugin {
     stopContainers := {
       val logger = sbt.Keys.streams.value.log
       val docker = DefaultDockerClient.fromEnv().build()
-      logger.info(s"stopping docker containers")
+      logger.info(s"stop docker containers")
       try {
         containers.value.foreach(stop(docker, _, logger))
       } finally {
@@ -59,7 +59,7 @@ object DockerLauncherPlugin extends AutoPlugin {
     rmContainers := {
       val logger = sbt.Keys.streams.value.log
       val docker = DefaultDockerClient.fromEnv().build()
-      logger.info(s"stopping docker containers")
+      logger.info(s"rm docker containers")
       try {
         containers.value.foreach(rm(docker, _, logger))
       } finally {
@@ -81,6 +81,7 @@ object DockerLauncherPlugin extends AutoPlugin {
   }
 
   def rm(dockerClient: DockerClient, definition: ContainerInstanceDefinition, logger: Logger) = {
+    dockerClient.stopContainer(definition.container.name, 10)
     dockerClient.removeContainer(definition.container.name)
   }
 
