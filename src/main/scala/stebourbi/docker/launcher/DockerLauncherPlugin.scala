@@ -71,7 +71,7 @@ object DockerLauncherPlugin extends AutoPlugin {
 
   def launch(dockerClient: DockerClient, definition: ContainerInstanceDefinition, logger: Logger) = {
     dockerClient.pull(definition.container.repository)
-    val con: ContainerConfig = definition.apply(dockerClient)
+    val con: ContainerConfig = definition.apply()
     val id = dockerClient.createContainer(con, definition.container.name).id()
     dockerClient.restartContainer(id)
   }
@@ -97,7 +97,7 @@ case class ContainerInstanceDefinition(val container: Container
 
   def this(repository: String, name: String) = this(new Container(repository, name))
 
-  def apply(dockerClient: DockerClient) = {
+  def apply() = {
     import scala.collection.JavaConversions._
     val exposedPorts: Set[String] = tunneling.map(v => s"${v._2}").toSet
     val envVars: List[String] = environmentVariables.map(v => s"${v._1}=${v._2}").toList
