@@ -70,8 +70,14 @@ object DockerLauncherPlugin extends AutoPlugin {
 
 
   def launch(dockerClient: DockerClient, definition: ContainerInstanceDefinition, logger: Logger) = {
-    dockerClient.pull(definition.container.repository)
+    if(dockerClient.searchImages(definition.container.repository).isEmpty){
+      dockerClient.pull(definition.container.repository)
+    }
+
     val con: ContainerConfig = definition.apply()
+
+    dockerClient.searchImages(definition.container.repository)
+
     val id = dockerClient.createContainer(con, definition.container.name).id()
     dockerClient.restartContainer(id)
   }
