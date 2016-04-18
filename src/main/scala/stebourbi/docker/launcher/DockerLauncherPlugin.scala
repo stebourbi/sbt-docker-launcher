@@ -1,8 +1,11 @@
 package stebourbi.docker.launcher
 
+import java.util
+
+import com.spotify.docker.client.{DefaultDockerClient, DockerClient}
+import com.spotify.docker.client.messages.{PortBinding, HostConfig, ContainerConfig}
 import sbt.AutoPlugin
 import sbt._
-import stebourbi.docker.launcher.ContainerStatus.ContainerStatus
 
 
 /**
@@ -13,12 +16,13 @@ import stebourbi.docker.launcher.ContainerStatus.ContainerStatus
  * TODO fill me please!
  *
  */
-object DockerLauncherPlugin extends AutoPlugin{
+object DockerLauncherPlugin extends AutoPlugin {
 
   object autoImport {
     lazy val containers = SettingKey[Seq[ContainerInstanceDefinition]]("containers", "A list of docker containers to be launched")
     lazy val launchContainers = TaskKey[Unit]("launch-containers", "Launches defined docker containers.")
     lazy val stopContainers = TaskKey[Unit]("stop-containers", "Stops defined docker containers.")
+    lazy val rmContainers = TaskKey[Unit]("rm-containers", "Remove defined docker containers.")
   }
 
   import autoImport._
@@ -32,97 +36,95 @@ object DockerLauncherPlugin extends AutoPlugin{
 
     launchContainers := {
       val logger = sbt.Keys.streams.value.log
-      logger.info(s"launching docker containers")
-      containers.value foreach(launch(_,logger))
-
+      val docker = DefaultDockerClient.fromEnv().build()
+      logger.info(s"launch docker containers")
+      try {
+        containers.value.foreach(launch(docker, _, logger))
+      } finally {
+        docker.close()
+      }
     },
 
     stopContainers := {
       val logger = sbt.Keys.streams.value.log
-      logger.info(s"stopping docker containers")
-      containers.value foreach(stop(_,logger))
+      val docker = DefaultDockerClient.fromEnv().build()
+      logger.info(s"stop docker containers")
+      try {
+        containers.value.foreach(stop(docker, _, logger))
+      } finally {
+        docker.close()
+      }
+    },
+
+    rmContainers := {
+      val logger = sbt.Keys.streams.value.log
+      val docker = DefaultDockerClient.fromEnv().build()
+      logger.info(s"rm docker containers")
+      try {
+        containers.value.foreach(rm(docker, _, logger))
+      } finally {
+        docker.close()
+      }
     }
   )
 
 
-  def launch(definition:ContainerInstanceDefinition,logger:Logger) = {
-    logger.info(s"launching docker container $definition")
-    val docker = Docker.of(logger)
+  def launch(dockerClient: DockerClient, definition: ContainerInstanceDefinition, logger: Logger) = {
+    dockerClient.pull(definition.container.repository)
+    val con: ContainerConfig = definition.apply()
+    val id = dockerClient.createContainer(con, definition.container.name).id()
+    dockerClient.restartContainer(id)
+  }
 
-    val runningContainers = docker.psAll()(logger)
-    logger.debug("docker ps: \n" + runningContainers.seq.mkString("\n"))
+  def stop(dockerClient: DockerClient, definition: ContainerInstanceDefinition, logger: Logger) = {
+    dockerClient.stopContainer(definition.container.name, 10)
+  }
 
-    runningContainers.find {
-      instance => definition.container.name.equals(instance.container.name) //XXX
-    } match {
-      case Some(container) => {
-        container.status match {
-          case ContainerStatus.Stopped => docker.start(container)(logger)
-          case ContainerStatus.Paused => docker.unpause(container)(logger)
-          case ContainerStatus.Running => ()
-        }
-      }
-      case None => docker.run(definition)(logger)
+  def rm(dockerClient: DockerClient, definition: ContainerInstanceDefinition, logger: Logger) = {
+    dockerClient.stopContainer(definition.container.name, 10)
+    dockerClient.removeContainer(definition.container.name)
+  }
+
+}
+
+case class Container(val repository: String, val name: String)
+
+case class ContainerInstanceDefinition(val container: Container
+                                       , val tunneling: Seq[(Int, Int)] = Seq()
+                                       , val environmentVariables: Seq[(String, String)] = Seq()
+                                       , val links: Seq[(String, String)] = Seq()
+                                        ) {
+
+  def this(repository: String, name: String) = this(new Container(repository, name))
+
+  def apply() = {
+    import scala.collection.JavaConversions._
+    val exposedPorts: Set[String] = tunneling.map(v => s"${v._2}").toSet
+    val envVars: List[String] = environmentVariables.map(v => s"${v._1}=${v._2}").toList
+    val linked: List[String] = links.map(v => s"${v._1}:${v._2}").toList
+
+    val portBindings = new java.util.HashMap[String, java.util.List[PortBinding]]()
+    for (port <- tunneling) {
+      val hostPorts = new util.ArrayList[PortBinding]()
+      hostPorts.add(PortBinding.of("0.0.0.0", port._1.toString))
+      portBindings.put(port._2.toString, hostPorts)
     }
+
+
+    val hostConfig = HostConfig.builder().links(linked).portBindings(portBindings).publishAllPorts(true).build()
+
+
+    ContainerConfig.builder()
+      .image(container.repository)
+      .hostConfig(hostConfig)
+      .exposedPorts(exposedPorts)
+      .env(envVars)
+      .build()
   }
 
-  def stop(definition:ContainerInstanceDefinition,logger:Logger) = {
-    logger.info(s"stopping docker container $definition")
-    val docker = OS.current match {
-      case OS.Type.MacOs => OS.MacOs.get(logger)
-    }
-    val runningContainers = docker.ps()(logger)
+  def p(tunnel: (Int, Int)): ContainerInstanceDefinition = this.copy(tunneling = tunnel +: tunneling)
 
-    runningContainers.find {
-      containerInstance => definition.container.name.equals(containerInstance.container.name)  //XXX
-    }.map(docker.stop(_)(logger))
+  def e(environmentVariable: (String, String)): ContainerInstanceDefinition = this.copy(environmentVariables = environmentVariable +: environmentVariables)
 
-  }
-
+  def link(link: (String, String)): ContainerInstanceDefinition = this.copy(links = link +: links)
 }
-
-case class Container(val repository:String,val name:String)
-
-case class ContainerInstanceDefinition(val container:Container
-                                       ,val  tunneling:Seq[(Int,Int)]=Seq()
-                                       ,val  environmentVariables:Seq[(String,String)]=Seq()
-                                       ,val  links:Seq[(String,String)]=Seq()
-                                        ){
-
-  def this(repository:String,name:String) = this(new Container(repository,name))
-
-  val commandArguments =  {
-    val tunnels = tunneling.map(p => s"-p ${p._1}:${p._2}").mkString(" ")
-    val envVars = environmentVariables.map(p => s"-e ${p._1}='${p._2}'").mkString(" ")
-    val linked = links.map(p => s"--link ${p._1}:${p._2}").mkString(" ")
-    s" $tunnels $envVars $linked -P -d  --name ${container.name} ${container.repository}"
-  }
-
-  def p(tunnel:(Int,Int)) : ContainerInstanceDefinition = this.copy(tunneling = tunnel +: tunneling)
-
-  def e(environmentVariable:(String,String)) : ContainerInstanceDefinition = this.copy(environmentVariables = environmentVariable +: environmentVariables)
-
-  def link(link : (String,String)) : ContainerInstanceDefinition = this.copy(links = link +: links)
-}
-
-case class ContainerInstance(val container:Container,val id:String,val status:ContainerStatus)
-
-object ContainerInstance {
-  val Unknown = ContainerInstance(Container("???","???"),"???",ContainerStatus.Unknown)
-}
-
-
-case object ContainerStatus extends Enumeration {
-  type ContainerStatus = Value
-  val Running,Paused,Stopped,Unknown = Value
-  def from(message:String) : ContainerStatus = {
-    message match {
-      case m:String if m.toLowerCase.contains("paused") => ContainerStatus.Paused
-      case m:String if m.startsWith("Up") => ContainerStatus.Running
-      case m:String if m.startsWith("Exited") => ContainerStatus.Stopped
-      case _ => ContainerStatus.Unknown
-    }
-  }
-
-}
-
